@@ -1493,30 +1493,36 @@ archivos_excel &lt;- list.files(wd, pattern = &quot;\\.xlsx$&quot;, full.names =
 file.rename(archivos_excel, file.path(carpeta_destino, basename(archivos_excel)))</code></pre>
 <pre><code>## [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE</code></pre>
 <p>Vamos ahora a subirlo al repositorio de GitHub</p>
-<pre class="r"><code># Inicializar el repositorio
-system(&quot;git init&quot;, intern = TRUE)</code></pre>
-<pre><code>## [1] &quot;Reinitialized existing Git repository in C:/Users/danit/Documents/R/Directorio de Trabajo/Master en Bioinfo/Analisis Datos Omicos/PEC1/.git/&quot;</code></pre>
-<pre class="r"><code># Agregar todos los archivos y carpetas, excluyendo metaboData (como está especificado en el gitignore)
+<p><a href="https://github.com/antartidan/PEC1_Omicos" class="uri">https://github.com/antartidan/PEC1_Omicos</a></p>
+<pre class="r"><code># Agregar todos los archivos y carpetas, excluyendo metaboData (como está especificado en el .gitignore)
 system(&quot;git add .&quot;, intern = TRUE)</code></pre>
 <pre><code>## character(0)</code></pre>
 <pre class="r"><code># Realizar el commit
 system(&quot;git commit -m \&quot;Subida inicial de todos los archivos al repositorio PEC1_Omicos\&quot;&quot;, intern = TRUE)</code></pre>
-<pre><code>## [1] &quot;[main 1a6fca9] Subida inicial de todos los archivos al repositorio PEC1_Omicos&quot;
-## [2] &quot; 11 files changed, 1573 insertions(+), 4 deletions(-)&quot;                         
-## [3] &quot; create mode 100644 PEC1_DANIEL_TAPIA.html&quot;</code></pre>
-<pre class="r"><code># Configurar el remoto con el token
+<pre><code>## [1] &quot;[main 1f69533] Subida inicial de todos los archivos al repositorio PEC1_Omicos&quot;
+## [2] &quot; 9 files changed, 0 insertions(+), 0 deletions(-)&quot;</code></pre>
+<pre class="r"><code># Eliminar cualquier remoto existente para evitar errores
+system(&quot;git remote remove origin&quot;, intern = TRUE)</code></pre>
+<pre><code>## character(0)</code></pre>
+<pre class="r"><code># Configurar el remoto con el token (asegúrate de no tener secretos en el historial de commits)
 system(&quot;git remote add origin https://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@github.com/antartidan/PEC1_Omicos.git&quot;, intern = TRUE)</code></pre>
-<pre><code>## character(0)
-## attr(,&quot;status&quot;)
-## [1] 3</code></pre>
+<pre><code>## character(0)</code></pre>
 <pre class="r"><code># Hacer pull para asegurarse de que el repositorio local esté actualizado
-system(&quot;git pull origin main&quot;, intern = TRUE)</code></pre>
-<pre><code>## [1] &quot;Already up to date.&quot;</code></pre>
+pull_output &lt;- system(&quot;git pull origin main&quot;, intern = TRUE)
+
+# Verificar si el pull se realizó con éxito
+if (any(grepl(&quot;Already up to date&quot;, pull_output))) {
+  cat(&quot;El repositorio local ya está actualizado.\n&quot;)
+} else {
+  cat(&quot;El repositorio local fue actualizado.\n&quot;)
+}</code></pre>
+<pre><code>## El repositorio local ya está actualizado.</code></pre>
 <pre class="r"><code># Hacer push a la rama principal
-system(&quot;git push -u origin main&quot;, intern = TRUE)</code></pre>
-<pre><code>## character(0)
-## attr(,&quot;status&quot;)
-## [1] 1</code></pre>
+push_output &lt;- system(&quot;git push -u origin main&quot;, intern = TRUE)
+
+# Imprimir el resultado del push
+cat(push_output, sep = &quot;\n&quot;)</code></pre>
+<pre><code>## branch &#39;main&#39; set up to track &#39;origin/main&#39;.</code></pre>
 </div>
 
 

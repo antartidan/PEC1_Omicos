@@ -398,7 +398,7 @@ system("git commit -m \"Subida inicial de todos los archivos al repositorio PEC1
 # Eliminar cualquier remoto existente para evitar errores
 system("git remote remove origin", intern = TRUE)
 
-# Configurar el remoto con el token (asegúrate de no tener secretos en el historial de commits)
+# Configurar el remoto con el token
 system("git remote add origin https://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@github.com/antartidan/PEC1_Omicos.git", intern = TRUE)
 
 # Hacer pull para asegurarse de que el repositorio local esté actualizado
