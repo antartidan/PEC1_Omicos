@@ -391,18 +391,18 @@ Vamos ahora a subirlo al repositorio de GitHub
 # Inicializar el repositorio
 system("git init", intern = TRUE)
 
-# Agregar todos los archivos y carpetas, excluyendo los que están en .gitignore
+# Agregar todos los archivos y carpetas, excluyendo metaboData (como está especificado en el gitignore)
 system("git add .", intern = TRUE)
 
-# Realizar el commit con comillas dobles para evitar problemas con los espacios
+# Realizar el commit
 system("git commit -m \"Subida inicial de todos los archivos al repositorio PEC1_Omicos\"", intern = TRUE)
 
 # Configurar el remoto con el token
 system("git remote add origin https://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@github.com/antartidan/PEC1_Omicos.git", intern = TRUE)
 
 # Hacer pull para asegurarse de que el repositorio local esté actualizado
-system("git pull origin main", intern = TRUE)  # Cambia "main" si tu rama principal tiene otro nombre
+system("git pull origin main", intern = TRUE)
 
 # Hacer push a la rama principal
-system("git push -u origin main", intern = TRUE)  # Cambia "main" si tu rama principal tiene otro nombre
+system("git push -u origin main", intern = TRUE)
 ```
