@@ -386,6 +386,8 @@ file.rename(archivos_excel, file.path(carpeta_destino, basename(archivos_excel))
 
 Vamos ahora a subirlo al repositorio de GitHub
 
+<https://github.com/antartidan/PEC1_Omicos>
+
 ```{r}
 # Agregar todos los archivos y carpetas, excluyendo metaboData (como está especificado en el .gitignore)
 system("git add .", intern = TRUE)
