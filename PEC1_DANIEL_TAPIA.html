@@ -1496,25 +1496,24 @@ file.rename(archivos_excel, file.path(carpeta_destino, basename(archivos_excel))
 <pre class="r"><code># Inicializar el repositorio
 system(&quot;git init&quot;, intern = TRUE)</code></pre>
 <pre><code>## [1] &quot;Reinitialized existing Git repository in C:/Users/danit/Documents/R/Directorio de Trabajo/Master en Bioinfo/Analisis Datos Omicos/PEC1/.git/&quot;</code></pre>
-<pre class="r"><code># Agregar todos los archivos y carpetas, excluyendo los que están en .gitignore
+<pre class="r"><code># Agregar todos los archivos y carpetas, excluyendo metaboData (como está especificado en el gitignore)
 system(&quot;git add .&quot;, intern = TRUE)</code></pre>
 <pre><code>## character(0)</code></pre>
-<pre class="r"><code># Realizar el commit con comillas dobles para evitar problemas con los espacios
+<pre class="r"><code># Realizar el commit
 system(&quot;git commit -m \&quot;Subida inicial de todos los archivos al repositorio PEC1_Omicos\&quot;&quot;, intern = TRUE)</code></pre>
-<pre><code>## [1] &quot;[main 034b0c7] Subida inicial de todos los archivos al repositorio PEC1_Omicos&quot;
-## [2] &quot; 11 files changed, 74 insertions(+), 1469 deletions(-)&quot;                        
-## [3] &quot; delete mode 100644 PEC1.html&quot;                                                 
-## [4] &quot; rename PEC1.Rmd =&gt; PEC1_DANIEL_TAPIA.Rmd (82%)&quot;</code></pre>
+<pre><code>## [1] &quot;[main 1a6fca9] Subida inicial de todos los archivos al repositorio PEC1_Omicos&quot;
+## [2] &quot; 11 files changed, 1573 insertions(+), 4 deletions(-)&quot;                         
+## [3] &quot; create mode 100644 PEC1_DANIEL_TAPIA.html&quot;</code></pre>
 <pre class="r"><code># Configurar el remoto con el token
 system(&quot;git remote add origin https://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@github.com/antartidan/PEC1_Omicos.git&quot;, intern = TRUE)</code></pre>
 <pre><code>## character(0)
 ## attr(,&quot;status&quot;)
 ## [1] 3</code></pre>
 <pre class="r"><code># Hacer pull para asegurarse de que el repositorio local esté actualizado
-system(&quot;git pull origin main&quot;, intern = TRUE)  # Cambia &quot;main&quot; si tu rama principal tiene otro nombre</code></pre>
+system(&quot;git pull origin main&quot;, intern = TRUE)</code></pre>
 <pre><code>## [1] &quot;Already up to date.&quot;</code></pre>
 <pre class="r"><code># Hacer push a la rama principal
-system(&quot;git push -u origin main&quot;, intern = TRUE)  # Cambia &quot;main&quot; si tu rama principal tiene otro nombre</code></pre>
+system(&quot;git push -u origin main&quot;, intern = TRUE)</code></pre>
 <pre><code>## character(0)
 ## attr(,&quot;status&quot;)
 ## [1] 1</code></pre>
