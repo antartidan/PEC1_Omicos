@@ -1,0 +1,354 @@
+---
+title: "PEC1_Analisis Omicos"
+author: "Daniel Tapia García"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE,warning = FALSE)
+```
+
+### 0. PREPARATIVOS PREVIOS
+
+```{r, echo=TRUE, message=FALSE}
+###Primero vamos a determinar el directorio de trabajo
+setwd("~/R/Directorio de Trabajo/Master en Bioinfo/Analisis Datos Omicos/PEC1")
+wd =getwd()
+
+#Instalamos las librerias necesarias
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("metabolomicsWorkbenchR")
+
+install.packages("git2r")
+install.packages("FSA")
+
+library(git2r)
+library(metabolomicsWorkbenchR)
+library(SummarizedExperiment)
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(broom)
+library(purrr)
+library(openxlsx)
+library(FSA)
+
+```
+
+### 1. OBTENCIÓN Y CARGA DE LOS DATOS
+
+```{r, error=TRUE}
+#Obtenemos los archivos para la PEC, introducimos la URL del repositorio
+repo_url <- "https://github.com/nutrimetabolomics/metaboData.git"
+
+# Clonamos el repositorio en el directorio de trabajo, en una carpeta específica
+git2r::clone(repo_url, local_path = file.path(wd, "metaboData"))
+```
+
+Vamos a centrarnos en el Dataset 2024-fobitools-UseCase_1, que contiene los datos experimentales para el paper.
+
+*"LC-MS Based Approaches to Investigate Metabolomic Differences in the Urine of Young Women after Drinking Cranberry Juice or Apple Juice"* <https://www.metabolomicsworkbench.org/data/DRCCMetadata.php?Mode=Study&StudyID=ST000291>
+
+```{r}
+#Podemos utilizar la función do_query de metabolomicsWorkbenchR para conectar directamente con la API de metabolomicsworkbench y obtener los IDS de estos estudios (aunque aparecen en el archivo .rm del repositorio, usaremos ese archivo para confirmar)
+
+query = do_query(
+    context = 'study',
+    input_item = 'study_title',
+    input_value = 'Cranberry',
+    output_item = 'summary'
+)
+
+df_query= query[1:6,c(1:5)]
+knitr::kable(df_query,format="markdown")
+
+#Veremos dos entradas, una de ellas coincide con el ID de nuestro experimento del repositorio (las medidas de Orina, ST000291), la otras es la referente a las medidas de plasma.
+
+#--También aparecen filas de NA, esto es debido a las dimensiones elegidas para ver la matriz de resultados, que es más grande que el total de resultados encontrados.
+```
+
+```{r}
+#Por tanto, volvemos a hcer una consulta para descargar esos datos, teniendo en cuenta de cambiar los argumentos para ingresar el ID y obtener el Summarized Experiment en lugar del resumen (tal como indica la documentación del paquete)
+
+SE = do_query(
+    context = 'study',
+    input_item = 'study_id',
+    input_value = 'ST000291',
+    output_item = 'SummarizedExperiment' # or 'DatasetExperiment'
+)
+
+#Vemos que en el elemento descargado tenemos 2 experimentos, parece que tienen diferente longitud
+summary(SE)
+
+#Ambos tienen la estructura de un Summarized Experiment, así que extraeremos los datos de su interior
+SE
+```
+
+### 2. ANÁLISIS DE METADATOS, GRUPOS EXPERIMENTALES Y LECTURAS LCMS
+
+Procedemos a analizar la estructura de esos experimentos
+
+```{r}
+
+#Primero los metadatos de ambos experimentos
+
+metadata_1=as.data.frame(metadata(SE$AN000464), stringsAsFactors = FALSE)
+metadata_2=as.data.frame(metadata(SE$AN000465), stringsAsFactors = FALSE)
+
+metaD_comparacion=data.frame(Ensayo1 = unlist(metadata_1),
+                                Ensayo2 = unlist(metadata_2))
+
+#La diferencia entre uno y otro es que en el primero se usa ionización positiva para el LCMS y en el segundo, negativa.
+knitr::kable(metaD_comparacion,format="markdown")
+
+#Guardamos los resultados en el directorio
+write.xlsx(metaD_comparacion, file="Comparación_metadatos.xlsx")
+```
+
+Dentro del SE tenemos dos ensayos, que corresponden a los dos análisis hechos con LCMS, esto coincide con lo que podemos ver en el resumen web del estudio (fila Ion Mode)
+
+![](images/%7B6843CAF7-CB68-472C-A837-3096CD472C71%7D.png)
+
+```{r}
+#Vamos pues a analizar diferentes aspectos de estas experiencias, por ejemplo, la cantidad de compuestos obtenidos en cada método y cuales son
+
+compounds_1=as.data.frame(SE$AN000464@elementMetadata@listData, stringsAsFactors = FALSE)
+nc1=SE$AN000464@elementMetadata@nrows
+
+compounds_2=as.data.frame(SE$AN000465@elementMetadata@listData, stringsAsFactors = FALSE)
+nc2=SE$AN000465@elementMetadata@nrows
+
+#Vemos como tiene el nombre de compuesto, un identificador de metabolito en la base de datos de workbench, y el nombre al que hace referencia (aunque no aparece para todos)
+
+comp_total=rbind(compounds_1,compounds_2)
+
+cat("Con polaridad positiva se obtuvieron ",nc1," compuestos y con polaridad negativa ",nc2, "los compuestos podrán ser vistos en los correspondientes archivos excel.")
+
+knitr::kable(head(compounds_1),format="markdown")
+knitr::kable(head(compounds_2),format="markdown")
+
+write.xlsx(compounds_1, file="compuestos_LCMS_Positivo.xlsx",rownames=FALSE)
+write.xlsx(compounds_2, file="compuestos_LCMS_Negativo.xlsx",rownames=FALSE)
+write.xlsx(comp_total, file="compuestos_total.xlsx",rownames=FALSE)
+
+```
+
+```{r}
+#Vamos a extraer los grupos experimentales, que son los mismos en ambos analisis
+grupos_experimentales=as.data.frame(colData(SE$AN000464), stringsAsFactors=FALSE)
+knitr::kable(grupos_experimentales,format="markdown")
+
+#Vemos como hay 3 clases experimentales, las lecturas basales, las lecturas tras beber zumo de manzana, y las lecturas tras beber zumo de arándanos
+summary(grupos_experimentales)
+
+#Guardamos los resultados en el directorio
+write.xlsx(grupos_experimentales, file="grupos_exp.xlsx",rownames=FALSE)
+```
+
+```{r}
+#También vamos a extraer las hojas de resultados crudos para ambos analisis
+raw_1=assay(SE$AN000464)
+write.xlsx(raw_1, file="Lecturas_LCMS_Positivo.xlsx",rownames=FALSE)
+raw_2=assay(SE$AN000465)
+write.xlsx(raw_2, file="Lecturas_LCMS_Negativo.xlsx",rownames=FALSE)
+
+#Creamos un único DF con los registros de todos los compuestos, primero los de perfil positivo y luego los negativos
+datos_raw=rbind(raw_1,raw_2)
+
+#Las dimensiones (nº de compuestos ~  nº pacientes) son
+dim(raw_1)
+dim(raw_2)
+dim(datos_raw)
+```
+
+### 3. ANÁLISIS DEL PROYECTO EN CONJUNTO
+
+#### A) PREGUNTA BIOLÓGICA Y DISEÑO EXPERIMENTAL
+
+Las Procianidinas son compuestos con actividad antioxidante, antibacteriana y antiinflamatoria, un enriquecimiento de este tipo de compuestos en la dieta puede tener efectos positivos en el individuo. El estudio tiene objetivo ver si la modificación de la dieta en alimentos altos en procianidinas tiene repercusión en el perfil metabólico (de orina en este caso) de los pacientes.
+
+En el estudio se reclutaron 18 mujeres estudiantes de entre 21 y 29 años para incluir en su dieta productos altos en procianidinas a lo largo de 6 días, y en el 7º se les tomó una muestra de orina y posteriormente se dividieron aleatoriamente en dos grupos para suministrarles zumo de arándanos o de manzana durante los siguientes días. Tras dos semanas de "depuración", el tratamiento en los grupos fue invertido. Se tomaron medidas del plasma y de orina de ambos grupos.
+
+#### **B) OBTENCIÓN DE DATOS CRUDOS Y DEPURACIÓN DE DATOS**
+
+Las muestras extraídas fueron sometidos a análisis de LCMS en polaridad positiva y negativa para cubrir un mayor abanico de moléculas.
+
+Se utilizó un grupo "control" representado por los valores de orina medidos en los pactientes antes de someterse a los diferentes zumos (tras la modificiación inicial de dieta).
+
+Se monitorizaron los valores en orina de los pacientes asignados a tomar zumo de arándanos o de manzana.
+
+Los datos fueron curados y procesados tanto en cuanto que se eliminaron algunos registros puesto que algunos de los participantes no finalizaron el tratamiento o no entregaron todas las muestras, así que fueron eliminados del análisis.
+
+Además, aunque en Workbench se representan datos con NA en los registros, este set de datos es usado como [demostración del paquete ***fobitools***,](https://www.bioconductor.org/packages/devel/bioc//vignettes/fobitools/inst/doc/MW_ST000291_enrichment.html#scraping-metabolite-names-and-identifiers-with-rvest) y en ese análisis (y es una práctica habitual en otros) se han eliminado estos NA para asegurar que todos los compuestos que analizamos aparecen en todos los pacientes (puesto que si algunos no son detectables no aportarían información útil a la conclusión).
+
+#### C) ANÁLISIS ESTADÍSTICO DE LOS DATOS
+
+En la demostración de uso del paquete fobitools se llevan a cabo diferentes análisis estadísticos:
+
+-   Preprocesado mediante k_NearestNeighbours y logPareto para transformar y escalar los datos
+
+-   Aplicación de un [modelo Limma](https://academic.oup.com/nar/article/43/7/e47/2414268) para determinar los metabolitos significativamente diferenciales, en este caso se muestran los 10 metabolitos de significación mayor en cuanto a las diferencias entre los grupo de pacientes "basales-zumo de arandano". Los ID de Pubchem, comparándolos con los valores correspondientes en la [web de WorkBench](https://www.metabolomicsworkbench.org/data/show_metabolites_by_study.php?STUDY_ID=ST000291&SORTFIELD=metabolite_name)
+
+    -   Dihydroxyfumarate; Sucralose; Methyl beta-d-galactoside; Furamizole; Dichlorophen; Nitramine;5-Methyl-3-isoxazolyl sulfate; Coenzyme B; Azinphos-ehthyl; Decarbamoylgonyautoxin
+
+![](images/%7BAF97B3B1-A987-484F-A362-7A3319E86431%7D.png)
+
+-   **Estudio de enriquecimiento:** En la web de demostración del uso de FOBI no consiguen obtener los alimentos suministrados (zumos) como el resultado de procesado de sus metabolitos a través de un análisis de sobrerrepresentación. Sin embargo, cuando cambiaron su enfoque a un estudio de enriquecimiento genético (Gene Set Enrichment Analysis), sí lo consiguen.
+
+![](images/%7B2599449F-590A-4350-A9E8-76B274B1F581%7D.png)
+
+Ambas son metologias complejas, sin embargo, podemos acudir a la [propia web de workbench donde se nos permite hacer un ANOVA para los metabolitos analizados](https://www.metabolomicsworkbench.org/data/pca/an.php?STUDY_ID=ST000291) y luego representarlos según su subcategoría química. La ANOVA es la técnica básica en este tipo de casos en los que comparamos las diferencias entre diferentes grupos de tratamiento.
+
+![](images/%7B9617E7DC-0C07-4B74-A0CE-4D070C01B690%7D.png)
+
+Podemos además comprobar, buscando los compuestos significativos observados previamente, sus categorías químicas (en la captura aparece, por ejemplo, la Sucralosa, Dihidroxifumarato y el metil beta-d-galactosido). Otros con significación patente han sido la Coenzima B, azinphos-ethyl
+
+-   NOTA: *Hay casos como el del Dichlorophen, que no es asignado a ninguna categoría y quizá por eso en este caso queda fuera de la significación. Otros sí aparecen, pero no son significativos, como Nitramine (benzeno), 5-Methyl-3-isoxazolyl sulfate, o el Decarbamoylgonyautoxin.*
+
+![](images/%7BFA60E5F5-CFAF-4CF1-A339-B369E308442C%7D.png)
+
+-   Si reducimos la lente a la que observamos los metabolitos y nos centramos únicamente en las clases químicas principales, los flavonoides (a los que pertenecen las procianidinas) presentan diferencias significativas, pero débiles (en el 4 último lugar).
+
+    *Primeros lugares*
+
+    ![](images/%7BDD813990-120B-4F5F-A7CE-15A79579705B%7D.png)*\
+    ÚItimos lugares*
+
+    ![](images/%7B85B40020-2AA9-4552-A8C6-4F36BE5E55C5%7D.png)
+
+#### D) CONCLUSIÓN DE LA PREGUNTA BIOLÓGICA
+
+Pese a que, según parece, los perfiles de orina muestran diferencias en su composición metabólica entre los grupos, el grupo de los flavonoides (al que pertenecen las procianidinas) presenta una significación débil, así que las diferencias significativas bien pueden deberse a la robustez de los tests utilizados en la web o a la naturaleza de los datos cargados, en lugar de a diferencias sustancialmente reales.
+
+Por desgracia, los autores no concluyen ni dan una respuesta puesto que el set de datos pertenece a una demostración de uso del paquete bioinformático fobitools, demostración que no responde a la pregunta del estudio sino a la utilidad del paquete en sí para identificar Biomarcadores en la comida (Food Biomarker Ontology) a través de análisis de LCMS de los que se obtienen los identificadores químicos estandarizados (PubchemID, etc.).
+
+**Por este motivo, intentamos extraer conclusiones propias:**
+
+-   Si a priori no hay una excreción significativamente diferente en orina de flavonoides, ni de conjugados glucosilados, y aunque [los procesos metabolicos a los que se someten las procianidinas en el organismo son mayormente desconocidos](https://riiit.com.mx/apps/site/files_v2450/litche_cd_valles._2_riiit_div_ene-feb_2023.pdf), es cierto que los compuestos fenólicos son sometidos a procesos de metilación o sulfatación y glucuronidación y que en el análisis de diferencias entre grupos los fenoles presentan diferencias significativas razonables
+
+    ![](images/%7B1BE7398E-57D7-4F7F-B4D4-6D6084C8D623%7D-01.png)
+
+-   Esto quiere decir que potencialmente hay una cantidad significativamente diferente de fenoles siendo expulsados (y potencialmente procesados antes en el organismo)
+
+### 4. ANÁLISIS DE LOS DATOS: VARIANZA ENTRE TRATAMIENTOS
+
+Vamos a llevar a cabo nuestro propio análisis
+
+```{r}
+#Primero comprobaremos la varianza entre los grupos de tratamiento. Vamos a asumir la normalidad de los datos puesto que es lo más común en las variables biológicas. Además, todos los registros proceden del mismo tipo de lectura (LCMS) así que todos están en la misma escala.
+
+#En primer lugar vamos a añadir los nombres de los compuestos a la hoja de datos en crudo 
+datos_raw$Compuesto <- comp_total[[1]]
+
+#Limpiamos el data frame de los registros que presentan NA
+datos_sin_na <- na.omit(datos_raw)
+
+#Convertimos el dataframe a formato largo para facilitar el análisis ANOVA
+# Primero, seleccionamos solo las columnas de interés para pivotar
+pacientes_cols <- names(datos_sin_na)[grepl("^a|^b|^c", names(datos_sin_na))]
+
+# Luego, pivotamos solo las columnas de pacientes
+datos_pivotado <- datos_sin_na %>%
+  select(Compuesto, all_of(pacientes_cols)) %>%
+  pivot_longer(
+    cols = all_of(pacientes_cols),
+    names_to = "Paciente",
+    values_to = "Intensidad"
+  ) %>%
+  mutate(
+    Grupo = case_when(
+      str_starts(Paciente, "a") ~ "Manzana",
+      str_starts(Paciente, "b") ~ "Base",
+      str_starts(Paciente, "c") ~ "Arandano"
+    )
+  )
+
+head(datos_pivotado)
+```
+
+```{r}
+#Segundo: Análisis estadístico compuesto por compuesto
+
+# ANOVA: Creamos un nuevo df al que le añadimos la columna cone l p-valor correspondiente
+anova_grupos <- datos_pivotado %>%
+  group_by(Compuesto) %>%
+  summarise(
+    p_value_anova = tryCatch(
+      summary(aov(Intensidad ~ Grupo))[[1]][["Pr(>F)"]][1],
+      error = function(e) NA
+    )
+  )
+
+head(anova_grupos)
+write.xlsx(anova_grupos, file="ANOVA_Grupos.xlsx",rownames=FALSE)
+```
+
+```{r}
+#Tercero: Análisis post Hoc para determinar las diferencias entre tratamientos. Es decir entre qué grupos se presentan las diferencias significativas observadas
+
+# Filtrado de compuestos significativos 
+compuestos_significativos <- anova_grupos %>%
+  filter(p_value_anova < 0.05)
+
+# Inicializar una lista para almacenar los resultados del post hoc
+resultados_posthoc <- list()
+
+# Análisis post hoc solo para compuestos significativos
+
+for (i in 1:nrow(compuestos_significativos)) {
+  compuesto <- compuestos_significativos$Compuesto[i]
+  
+  # Realiza el análisis post hoc de Tukey
+  posthoc_result <- TukeyHSD(aov(Intensidad ~ Grupo, data = datos_pivotado[datos_pivotado$Compuesto == compuesto, ]))
+  
+  # Convierte los resultados a un dataframe y añade la columna de compuesto
+  resultados_posthoc[[i]] <- broom::tidy(posthoc_result) %>%
+    select(contrast, estimate, conf.low, conf.high, adj.p.value) %>% # Selecciona las columnas deseadas
+    mutate(Compuesto = compuesto)
+}
+
+# Combina todos los resultados post hoc en un solo dataframe
+resultados_posthoc_df <- bind_rows(resultados_posthoc)
+
+# Filtra los resultados significativos
+resultados_significativos <- resultados_posthoc_df %>%
+  filter(adj.p.value < 0.05)
+
+# Separa los resultados por comparación
+base_arandano <- resultados_significativos %>% filter(grepl("Base-Arandano", contrast))
+manzana_base <- resultados_significativos %>% filter(grepl("Manzana-Base", contrast))
+manzana_arandano <- resultados_significativos %>% filter(grepl("Manzana-Arandano", contrast))
+
+#Veremos las columnas de diferencia estimada, limites superior e inferior, además del p valor asociado. La diferencia se calcula como la sustracción del primer grupo al segundo, es decir:
+
+# Si la diferencia estimada entre los grupos A-B es de 5, esto quiere decir que B-A = 5 unidades. Por tanto, valores positivos en los estimados indican que el segundo grupo presenta una intensidad (media) MAYOR para ese compuesto, y viceversa.
+
+head(base_arandano)
+head(manzana_base)
+head(manzana_arandano)
+
+
+#Extraeremos los compuestos significativamente diferentes en los tratamientos
+
+base_arandano_positivos = subset(base_arandano, estimate > 0)
+base_manzana_positivos 
+```
+
+```{r}
+
+wb <- createWorkbook()
+
+addWorksheet(wb, "Base-Arandano")
+writeData(wb, "Base-Arandano", base_arandano)
+
+addWorksheet(wb, "Manzana-Base")
+writeData(wb, "Manzana-Base", manzana_base)
+
+addWorksheet(wb, "Manzana-Arandano")
+writeData(wb, "Manzana-Arandano", manzana_arandano)
+
+saveWorkbook(wb, "resultados_posthoc.xlsx", overwrite = TRUE)
+```
