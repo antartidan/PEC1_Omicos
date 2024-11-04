@@ -2,7 +2,9 @@
 title: "PEC1_Analisis Omicos"
 author: "Daniel Tapia García"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
