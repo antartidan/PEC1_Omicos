@@ -1499,12 +1499,12 @@ system(&quot;git add .&quot;, intern = TRUE)</code></pre>
 <pre><code>## character(0)</code></pre>
 <pre class="r"><code># Realizar el commit
 system(&quot;git commit -m \&quot;Subida inicial de todos los archivos al repositorio PEC1_Omicos\&quot;&quot;, intern = TRUE)</code></pre>
-<pre><code>## [1] &quot;[main 1f69533] Subida inicial de todos los archivos al repositorio PEC1_Omicos&quot;
+<pre><code>## [1] &quot;[main 3fcab3f] Subida inicial de todos los archivos al repositorio PEC1_Omicos&quot;
 ## [2] &quot; 9 files changed, 0 insertions(+), 0 deletions(-)&quot;</code></pre>
 <pre class="r"><code># Eliminar cualquier remoto existente para evitar errores
 system(&quot;git remote remove origin&quot;, intern = TRUE)</code></pre>
 <pre><code>## character(0)</code></pre>
-<pre class="r"><code># Configurar el remoto con el token (asegúrate de no tener secretos en el historial de commits)
+<pre class="r"><code># Configurar el remoto con el token
 system(&quot;git remote add origin https://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@github.com/antartidan/PEC1_Omicos.git&quot;, intern = TRUE)</code></pre>
 <pre><code>## character(0)</code></pre>
 <pre class="r"><code># Hacer pull para asegurarse de que el repositorio local esté actualizado
