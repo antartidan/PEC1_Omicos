@@ -42,7 +42,7 @@ library(FSA)
 
 ```{r, error=TRUE}
 #Obtenemos los archivos para la PEC, introducimos la URL del repositorio
-repo_url <- "https://github.com/nutrimetabolomics/metaboData.git"
+repo_url = "https://github.com/nutrimetabolomics/metaboData.git"
 
 # Clonamos el repositorio en el directorio de trabajo, en una carpeta específica
 git2r::clone(repo_url, local_path = file.path(wd, "metaboData"))
@@ -241,17 +241,17 @@ Vamos a llevar a cabo nuestro propio análisis
 #Primero comprobaremos la varianza entre los grupos de tratamiento. Vamos a asumir la normalidad de los datos puesto que es lo más común en las variables biológicas. Además, todos los registros proceden del mismo tipo de lectura (LCMS) así que todos están en la misma escala.
 
 #En primer lugar vamos a añadir los nombres de los compuestos a la hoja de datos en crudo 
-datos_raw$Compuesto <- comp_total[[1]]
+datos_raw$Compuesto = comp_total[[1]]
 
 #Limpiamos el data frame de los registros que presentan NA
-datos_sin_na <- na.omit(datos_raw)
+datos_sin_na = na.omit(datos_raw)
 
 #Convertimos el dataframe a formato largo para facilitar el análisis ANOVA
 # Primero, seleccionamos solo las columnas de interés para pivotar
-pacientes_cols <- names(datos_sin_na)[grepl("^a|^b|^c", names(datos_sin_na))]
+pacientes_cols = names(datos_sin_na)[grepl("^a|^b|^c", names(datos_sin_na))]
 
 # Luego, pivotamos solo las columnas de pacientes
-datos_pivotado <- datos_sin_na %>%
+datos_pivotado = datos_sin_na %>%
   select(Compuesto, all_of(pacientes_cols)) %>%
   pivot_longer(
     cols = all_of(pacientes_cols),
@@ -273,7 +273,7 @@ head(datos_pivotado)
 #Segundo: Análisis estadístico compuesto por compuesto
 
 # ANOVA: Creamos un nuevo df al que le añadimos la columna cone l p-valor correspondiente
-anova_grupos <- datos_pivotado %>%
+anova_grupos = datos_pivotado %>%
   group_by(Compuesto) %>%
   summarise(
     p_value_anova = tryCatch(
@@ -290,37 +290,37 @@ write.xlsx(anova_grupos, file="ANOVA_Grupos.xlsx",rownames=FALSE)
 #Tercero: Análisis post Hoc para determinar las diferencias entre tratamientos. Es decir entre qué grupos se presentan las diferencias significativas observadas
 
 # Filtrado de compuestos significativos 
-compuestos_significativos <- anova_grupos %>%
+compuestos_significativos = anova_grupos %>%
   filter(p_value_anova < 0.05)
 
 # Inicializar una lista para almacenar los resultados del post hoc
-resultados_posthoc <- list()
+resultados_posthoc = list()
 
 # Análisis post hoc solo para compuestos significativos
 
 for (i in 1:nrow(compuestos_significativos)) {
-  compuesto <- compuestos_significativos$Compuesto[i]
+  compuesto = compuestos_significativos$Compuesto[i]
   
   # Realiza el análisis post hoc de Tukey
-  posthoc_result <- TukeyHSD(aov(Intensidad ~ Grupo, data = datos_pivotado[datos_pivotado$Compuesto == compuesto, ]))
+  posthoc_result = TukeyHSD(aov(Intensidad ~ Grupo, data = datos_pivotado[datos_pivotado$Compuesto == compuesto, ]))
   
   # Convierte los resultados a un dataframe y añade la columna de compuesto
-  resultados_posthoc[[i]] <- broom::tidy(posthoc_result) %>%
+  resultados_posthoc[[i]] = broom::tidy(posthoc_result) %>%
     select(contrast, estimate, conf.low, conf.high, adj.p.value) %>% # Selecciona las columnas deseadas
     mutate(Compuesto = compuesto)
 }
 
 # Combina todos los resultados post hoc en un solo dataframe
-resultados_posthoc_df <- bind_rows(resultados_posthoc)
+resultados_posthoc_df = bind_rows(resultados_posthoc)
 
 # Filtra los resultados significativos
-resultados_significativos <- resultados_posthoc_df %>%
+resultados_significativos = resultados_posthoc_df %>%
   filter(adj.p.value < 0.05)
 
 # Separa los resultados por comparación
-base_arandano <- resultados_significativos %>% filter(grepl("Base-Arandano", contrast))
-manzana_base <- resultados_significativos %>% filter(grepl("Manzana-Base", contrast))
-manzana_arandano <- resultados_significativos %>% filter(grepl("Manzana-Arandano", contrast))
+base_arandano = resultados_significativos %>% filter(grepl("Base-Arandano", contrast))
+manzana_base = resultados_significativos %>% filter(grepl("Manzana-Base", contrast))
+manzana_arandano = resultados_significativos %>% filter(grepl("Manzana-Arandano", contrast))
 
 #Veremos las columnas de diferencia estimada, limites superior e inferior, además del p valor asociado. La diferencia se calcula como la sustracción del primer grupo al segundo, es decir:
 
@@ -331,15 +331,28 @@ head(manzana_base)
 head(manzana_arandano)
 
 
-#Extraeremos los compuestos significativamente diferentes en los tratamientos
+#Extraeremos los compuestos significativamente diferentes en los tratamientos. Cuidado con el  manzana_base, debemos invertido (<) por el orden en que se han contrastado)
 
-base_arandano_positivos = subset(base_arandano, estimate > 0)
-base_manzana_positivos 
+base_arandano_positivos=subset(base_arandano, estimate > 0)
+base_manzana_positivos=subset(manzana_base,estimate<0)
+
+#Los siguientes compuestos son los que aparecen significativamente con más intensidad diferentes en un tratamiento con estos zumos.
+compuestos_diferenciales_positivos=rbind(base_arandano_positivos,base_manzana_positivos)
+
+
+cat("Los compuestos que ven incrementada su aparición en orina cuando se suministra Zumo de Arándano son:
+    ", paste(unique(base_arandano_positivos$Compuesto), collapse = ","),
+    "
+    
+    Los compuestos que ven incrementada su aparición en orina cuando se suministra Zumo de Manzana son :
+    ", paste(unique(base_manzana_positivos$Compuesto), collapse = ", "))
+
 ```
 
 ```{r}
+#Guardamos en un excel con diferentes hojas este análisis, aunque sin el desglose, puesto que son archivos pequeños de excel con los que se puede trabajar sin problemas
 
-wb <- createWorkbook()
+wb = createWorkbook()
 
 addWorksheet(wb, "Base-Arandano")
 writeData(wb, "Base-Arandano", base_arandano)
@@ -351,4 +364,45 @@ addWorksheet(wb, "Manzana-Arandano")
 writeData(wb, "Manzana-Arandano", manzana_arandano)
 
 saveWorkbook(wb, "resultados_posthoc.xlsx", overwrite = TRUE)
+```
+
+### 5. ORGANIZACIÓN DE RESULTADOS EN EL DIRECTORIO DE TRABAJO Y SUBIDA A GITHUB
+
+```{r}
+# Creamos una carpeta para almacenar los excels
+
+carpeta_destino <- file.path(wd, "excel_resultados")
+
+if (!dir.exists(carpeta_destino)) {
+  dir.create(carpeta_destino)
+}
+
+# Obtiene la lista de archivos Excel en el directorio de trabajo
+archivos_excel <- list.files(wd, pattern = "\\.xlsx$", full.names = TRUE)
+
+# Mueve cada archivo Excel a la carpeta de destino
+file.rename(archivos_excel, file.path(carpeta_destino, basename(archivos_excel)))
+```
+
+Vamos ahora a subirlo al repositorio de GitHub
+
+```{r}
+
+# Inicializar el repositorio
+system("git init", intern = TRUE)
+
+# Agregar todos los archivos y carpetas, excluyendo los que están en .gitignore
+system("git add .", intern = TRUE)
+
+# Realizar el commit con comillas dobles para evitar problemas con los espacios
+system("git commit -m \"Subida inicial de todos los archivos al repositorio PEC1_Omicos\"", intern = TRUE)
+
+# Configurar el remoto con el token
+system("git remote add origin https://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@github.com/antartidan/PEC1_Omicos.git", intern = TRUE)
+
+# Hacer pull para asegurarse de que el repositorio local esté actualizado
+system("git pull origin main", intern = TRUE)  # Cambia "main" si tu rama principal tiene otro nombre
+
+# Hacer push a la rama principal
+system("git push -u origin main", intern = TRUE)  # Cambia "main" si tu rama principal tiene otro nombre
 ```
