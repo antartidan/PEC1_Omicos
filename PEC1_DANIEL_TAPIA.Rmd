@@ -391,7 +391,7 @@ Vamos ahora a subirlo al repositorio de GitHub
 system("git add .", intern = TRUE)
 
 # Realizar el commit
-system("git commit -m 'Subida inicial de todos los archivos al repositorio PEC1_Omicos'", intern = TRUE)
+system("git commit -m \"Subida inicial de todos los archivos al repositorio PEC1_Omicos\"", intern = TRUE)
 
 # Eliminar cualquier remoto existente para evitar errores
 system("git remote remove origin", intern = TRUE)
